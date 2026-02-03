@@ -4,6 +4,9 @@ async function loadNames() {
   const res = await fetch("./names.json", { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to load names.json: ${res.status}`);
   NAMES = await res.json();
+
+  const status = document.getElementById("status");
+  if (status) status.textContent = `Loaded ${NAMES.length} names`;
   console.log("Loaded names:", NAMES.length);
 }
 
@@ -28,19 +31,20 @@ function attachSearch() {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = name;
+      btn.style.display = "block";
+      btn.style.margin = "2px 0";
 
       btn.onclick = () => {
         input.value = name;
         results.innerHTML = "";
 
-        // Only send data if we're actually inside Jotform
+        // Only send data if we're inside Jotform widget context
         if (window.JFCustomWidget && typeof window.JFCustomWidget.sendData === "function") {
           window.JFCustomWidget.sendData({ value: name });
         }
       };
 
       results.appendChild(btn);
-      results.appendChild(document.createElement("br"));
     }
   });
 }
@@ -51,23 +55,21 @@ async function startStandalone() {
 }
 
 function startInJotform() {
-  // Jotform calls "ready" once the widget is loaded in the form
   window.JFCustomWidget.subscribe("ready", async function () {
     await loadNames();
     attachSearch();
   });
 
-  // Optional: if you want to validate before submit, you can use "submit"
+  // Optional hook
   window.JFCustomWidget.subscribe("submit", function () {
     // no-op
   });
 }
 
-// Decide mode:
+// Decide mode
 if (window.JFCustomWidget && typeof window.JFCustomWidget.subscribe === "function") {
   startInJotform();
 } else {
-  // Not inside Jotform — run standalone so you can test on GitHub Pages
   startStandalone().catch(err => {
     console.error(err);
     const results = document.getElementById("results");
